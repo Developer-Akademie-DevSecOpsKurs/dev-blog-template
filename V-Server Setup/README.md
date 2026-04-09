@@ -1,136 +1,322 @@
 # V-Server Setup
 
-This document describes how I configured my V-Server for the Developer Akademie DevSecOps course project.
+Use this guide to set up a Linux V-Server with SSH key authentication, disabled password login, NGINX, and GitHub SSH access.
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Server Information](#server-information)
-3. [SSH Setup](#ssh-setup)
-4. [Disable Password Login](#disable-password-login)
-5. [NGINX Installation and Configuration](#nginx-installation-and-configuration)
-6. [Git Configuration on the Server](#git-configuration-on-the-server)
-7. [GitHub SSH Key Setup](#github-ssh-key-setup)
-8. [Testing](#testing)
-9. [Conclusion](#conclusion)
+1. [Prerequisites](#prerequisites)
+2. [Create a Local SSH Key](#create-a-local-ssh-key)
+3. [Copy the Public Key to the Server](#copy-the-public-key-to-the-server)
+4. [Verify SSH Login](#verify-ssh-login)
+5. [Disable Password Login](#disable-password-login)
+6. [Install NGINX](#install-nginx)
+7. [Serve an Alternative NGINX Page on Port 8081](#serve-an-alternative-nginx-page-on-port-8081)
+8. [Configure Git on the Server](#configure-git-on-the-server)
+9. [Create a GitHub SSH Key on the Server](#create-a-github-ssh-key-on-the-server)
+10. [Configure SSH for GitHub](#configure-ssh-for-github)
+11. [Verify the Setup](#verify-the-setup)
+12. [Checklist](#checklist)
 
-## Project Overview
+## Prerequisites
 
-The goal of this project was to set up a secure Linux V-Server, configure SSH key authentication, disable password-based SSH login, install and configure NGINX, and prepare Git and GitHub access directly on the server.
+- A running Ubuntu server
+- A local terminal with SSH installed
+- A GitHub account
+- `sudo` access on the server
 
-## Server Information
+## Create a Local SSH Key
 
-- Server IP: `91.98.162.80`
-- Server user: `fatih-yalcin`
-- Operating system: Ubuntu 24.04 LTS
-
-## SSH Setup
-
-First, I copied my public SSH key from my local machine to the server.
+Generate a dedicated SSH key pair on your local machine.
 
 ```bash
-ssh-copy-id -i /Users/fatihyalcin/Desktop/DevSec/ssh-key/demo_ed25519.pub fatih-yalcin@91.98.162.80
+ssh-keygen -t ed25519 -C "<your_email>" -f ~/.ssh/id_ed25519_vserver
+```
 
+Display the public key if you want to inspect it before copying it to the server.
 
-Then I tested the login with my private key:
-ssh -i /Users/fatihyalcin/Desktop/DevSec/ssh-key/demo_ed25519 fatih-yalcin@91.98.162.80
-This confirmed that SSH key authentication was working correctly.
+```bash
+cat ~/.ssh/id_ed25519_vserver.pub
+```
 
+## Copy the Public Key to the Server
 
-Disable Password Login
-After verifying that SSH login with the key worked, I updated the SSH server configuration:
+Copy the public key from your local machine to the server.
+
+```bash
+ssh-copy-id <your_username>@<your_server_ip>
+```
+
+If you use a non-default key name, specify it explicitly.
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519_vserver.pub <your_username>@<your_server_ip>
+```
+
+## Verify SSH Login
+
+Connect to the server with your private key.
+
+```bash
+ssh -i ~/.ssh/id_ed25519_vserver <your_username>@<your_server_ip>
+```
+
+The login should work without asking for the server password.
+
+## Disable Password Login
+
+Open the SSH server configuration on the server.
+
+```bash
 sudo nano /etc/ssh/sshd_config
+```
 
-I used the following settings:
+Set the following values.
+
+```text
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin no
+```
 
-Then I validated the configuration:
+Validate the SSH configuration.
+
+```bash
 sudo sshd -t
+```
 
-And restarted the SSH service:
+Restart the SSH service.
+
+```bash
 sudo systemctl restart ssh
+```
 
-To make sure password-based login was really disabled, I tested it from my local machine:
-ssh -o PubkeyAuthentication=no fatih-yalcin@91.98.162.80
+Test that password-based login is disabled from your local machine.
 
-This login failed with Permission denied (publickey), which confirmed that password login was disabled.
-NGINX Installation and Configuration
+```bash
+ssh -o PubkeyAuthentication=no <your_username>@<your_server_ip>
+```
 
-I installed NGINX on the server using apt:
+The command should fail with `Permission denied (publickey)`.
+
+## Install NGINX
+
+Update the package list on the server.
+
+```bash
 sudo apt update
+```
+
+Install NGINX.
+
+```bash
 sudo apt install -y nginx
+```
+
+Enable the service.
+
+```bash
 sudo systemctl enable nginx
+```
+
+Start the service.
+
+```bash
 sudo systemctl start nginx
+```
 
-Then I checked the service status:
+Check the service status.
+
+```bash
 systemctl status nginx
+```
 
-After that, I verified in the browser that the default NGINX page was reachable via:
-http://91.98.162.80
+## Serve an Alternative NGINX Page on Port 8081
 
-Next, I replaced the default landing page with a custom HTML page:
-sudo nano /var/www/html/index.nginx-debian.html
+Create a directory for the alternative page.
 
-After editing the file, I tested and reloaded the NGINX configuration:
+```bash
+sudo mkdir -p /var/www/vserver-demo
+```
+
+Create the HTML file for the alternative page.
+
+```bash
+sudo nano /var/www/vserver-demo/index.html
+```
+
+Use this content.
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>V-Server Demo</title>
+  </head>
+  <body>
+    <h1>V-Server Demo Page</h1>
+    <p>This page is served by NGINX on port 8081.</p>
+  </body>
+</html>
+```
+
+Create a dedicated NGINX server block.
+
+```bash
+sudo nano /etc/nginx/sites-available/vserver-demo
+```
+
+Use this configuration.
+
+```nginx
+server {
+    listen 8081;
+    listen [::]:8081;
+
+    server_name _;
+    root /var/www/vserver-demo;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+```
+
+Enable the new site.
+
+```bash
+sudo ln -s /etc/nginx/sites-available/vserver-demo /etc/nginx/sites-enabled/vserver-demo
+```
+
+Test the NGINX configuration.
+
+```bash
 sudo nginx -t
+```
+
+Reload NGINX.
+
+```bash
 sudo systemctl reload nginx
-This successfully displayed my custom landing page in the browser.
+```
 
-Git Configuration on the Server
-I configured Git on the server with my name and GitHub email address:
-git config --global user.name "Fatih Yalcin"
-git config --global user.email "86c29vxm24@privaterelay.appleid.com"
+Open the page in a browser.
+
+```text
+http://<your_server_ip>:8081
+```
+
+## Configure Git on the Server
+
+Set the Git user name on the server.
+
+```bash
+git config --global user.name "<your_name>"
+```
+
+Set the Git email address on the server.
+
+```bash
+git config --global user.email "<your_email>"
+```
+
+Review the active Git configuration.
+
+```bash
 git config --global --list
-This ensures that commits made on the server use the correct identity.
+```
 
-GitHub SSH Key Setup
-To allow GitHub access directly from the server, I generated a dedicated SSH key pair on the server:
-ssh-keygen -t ed25519 -C "86c29vxm24@privaterelay.appleid.com" -f ~/.ssh/id_ed25519_github
-Then I displayed the public key:
+## Create a GitHub SSH Key on the Server
+
+Generate a dedicated SSH key pair on the server for GitHub access.
+
+```bash
+ssh-keygen -t ed25519 -C "<your_email>" -f ~/.ssh/id_ed25519_github
+```
+
+Display the public key.
+
+```bash
 cat ~/.ssh/id_ed25519_github.pub
-I added this public key to my GitHub account under:
+```
 
-Settings
-SSH and GPG keys
-New SSH key
-After that, I created an SSH config file on the server:
+Add the public key to your GitHub account under `Settings -> SSH and GPG keys`.
+
+## Configure SSH for GitHub
+
+Create the SSH config file on the server.
+
+```bash
 nano ~/.ssh/config
-With this content:
+```
+
+Use this configuration.
+
+```sshconfig
 Host github.com
   HostName github.com
   User git
   IdentityFile ~/.ssh/id_ed25519_github
   IdentitiesOnly yes
-Then I set the correct file permissions:
+```
+
+Set the correct permissions.
+
+```bash
 chmod 600 ~/.ssh/config
-Finally, I tested the GitHub SSH connection:
+```
+
+Test the GitHub SSH connection.
+
+```bash
 ssh -T git@github.com
-GitHub returned a successful authentication message.
+```
 
-Testing
-I verified the following points:
+GitHub should confirm successful authentication.
 
-SSH login with key authentication works
-SSH login with username and password is disabled
-NGINX is installed and running
-The custom landing page is reachable in the browser
-Git is configured with the correct user name and email
-GitHub SSH authentication from the server works
+## Verify the Setup
 
-Conclusion
-This project helped me understand the basic setup and security configuration of a Linux V-Server.
+Verify that SSH key login works.
 
-I learned how to:
+```bash
+ssh -i ~/.ssh/id_ed25519_vserver <your_username>@<your_server_ip>
+```
 
-configure SSH key authentication
-disable password-based SSH login
-install and configure NGINX
-deploy a custom HTML landing page
-configure Git on a server
-authenticate a server with GitHub via SSH
+Verify that password login is disabled.
 
-Sensitive data such as passwords and private SSH keys are not included in this repository.
+```bash
+ssh -o PubkeyAuthentication=no <your_username>@<your_server_ip>
+```
 
+Verify that NGINX is running.
+
+```bash
+systemctl status nginx
+```
+
+Verify that the alternative page is reachable.
+
+```text
+http://<your_server_ip>:8081
+```
+
+Verify GitHub SSH access.
+
+```bash
+ssh -T git@github.com
+```
+
+## Checklist
+
+- [x] Create an SSH key
+- [x] Copy the public key to the server
+- [x] Verify SSH login with the key
+- [x] Disable password-based SSH login
+- [x] Install and start NGINX
+- [x] Serve an alternative NGINX page on port `8081`
+- [x] Configure Git on the server
+- [x] Create a dedicated GitHub SSH key on the server
+- [x] Configure SSH for GitHub
+- [x] Verify the complete setup
