@@ -1,6 +1,6 @@
 # V-Server Setup
 
-Use this guide to set up a Linux V-Server with SSH key authentication, disabled password login, NGINX, and GitHub SSH access.
+The goal of this project is to set up a secure Linux V-Server, configure SSH key authentication, disable password-based SSH login, install and configure NGINX, and prepare Git and GitHub access directly on the server.
 
 ## Table of Contents
 
@@ -133,35 +133,7 @@ systemctl status nginx
 
 ## Serve an Alternative NGINX Page on Port 8081
 
-Create a directory for the alternative page.
-
-```bash
-sudo mkdir -p /var/www/vserver-demo
-```
-
-Create the HTML file for the alternative page.
-
-```bash
-sudo nano /var/www/vserver-demo/index.html
-```
-
-Use this content.
-
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>V-Server Demo</title>
-  </head>
-  <body>
-    <h1>V-Server Demo Page</h1>
-    <p>This page is served by NGINX on port 8081.</p>
-  </body>
-</html>
-```
-
-Create a dedicated NGINX server block.
+Create a dedicated NGINX server block that serves the same page content as port `80`.
 
 ```bash
 sudo nano /etc/nginx/sites-available/vserver-demo
@@ -175,8 +147,8 @@ server {
     listen [::]:8081;
 
     server_name _;
-    root /var/www/vserver-demo;
-    index index.html;
+    root /var/www/html;
+    index index.nginx-debian.html index.html;
 
     location / {
         try_files $uri $uri/ =404;
@@ -207,6 +179,8 @@ Open the page in a browser.
 ```text
 http://<your_server_ip>:8081
 ```
+
+The page on port `8081` should display the same content as the page on port `80`.
 
 ## Configure Git on the Server
 
