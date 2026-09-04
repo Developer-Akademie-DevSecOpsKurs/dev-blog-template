@@ -23,7 +23,7 @@ This repository hosts a developer blog built with Docusaurus. It includes tools 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v20 or later recommended)
+- [Node.js](https://nodejs.org/) (v24 or later recommended)
 - [Docker](https://www.docker.com/products/docker-desktop) (only required if [deploying using NGINX](#deploying-using-nginx))
 
 1. Installation
