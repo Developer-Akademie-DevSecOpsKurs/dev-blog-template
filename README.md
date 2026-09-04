@@ -23,20 +23,19 @@ This repository hosts a developer blog built with Docusaurus. It includes tools 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v16 or later recommended)
-- [pnpm](https://pnpm.io/) (package manager for faster and more efficient dependency handling)
+- [Node.js](https://nodejs.org/) (v24 or later recommended)
 - [Docker](https://www.docker.com/products/docker-desktop) (only required if [deploying using NGINX](#deploying-using-nginx))
 
 1. Installation
 
    ```
-   $ pnpm install
+   $ npm install
    ```
 
 2. Local Development
 
    ```
-   $ pnpm start
+   $ npm start
    ```
 
    This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
@@ -44,7 +43,7 @@ This repository hosts a developer blog built with Docusaurus. It includes tools 
 3. Build
 
    ```
-   $ pnpm build
+   $ npm run build
    ```
 
    This command generates static content into the `build` directory and can be served using any static contents hosting service.
@@ -54,7 +53,7 @@ This repository hosts a developer blog built with Docusaurus. It includes tools 
    In order to deploy onto Github Pages, ensure that your `docusaurus.config.ts` conforms with the [documentation guidelines](https://docusaurus.io/docs/deployment#deploying-to-github-pages). After that is ensured run the following command to deploy:
 
    ```
-   $ USE_SSH=true pnpm deploy
+   $ USE_SSH=true npm run deploy
    ```
 
 For detailed information about deploying this Docusaurus project, refer to the [Deployment](#deployment) section below.
@@ -69,7 +68,7 @@ The repository is organized as follows:
 - `static/`: Stores static assets (e.g., images, icons) served directly without processing.
 - `sidebars.ts`: Configures the structure of sidebars in the documentation section.
 - `docusaurus.config.ts`: Main configuration file for customizing and managing Docusaurus behavior.
-- `build/`: Generated after running the `pnpm build` command. Contains the static website files ready for deployment.
+- `build/`: Generated after running the `npm run build` command. Contains the static website files ready for deployment.
 
 New content can be added as follows:
 
@@ -83,13 +82,13 @@ New content can be added as follows:
 To deploy using SSH:
 
 ```
-$ USE_SSH=true pnpm deploy
+$ USE_SSH=true npm run deploy
 ```
 
 To deploy without using SSH, run:
 
 ```
-$ GIT_USER=<Your GitHub username> pnpm deploy
+$ GIT_USER=<Your GitHub username> npm run deploy
 ```
 
 If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
